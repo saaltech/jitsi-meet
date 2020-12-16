@@ -1235,7 +1235,7 @@ export default {
      * Returns the stats.
      */
     getStats() {
-        return room.connectionQuality.getStats();
+        return room?.connectionQuality?.getStats();
     },
 
     // end used by torture

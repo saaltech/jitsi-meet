@@ -42,7 +42,9 @@ import { LAYOUTS, getCurrentLayout, calculateNumberOfPages, showPagination } fro
 import { maybeShowSuboptimalExperienceNotification,
     getConferenceSocketBaseLink,
     getWaitingParticipantsSocketTopic,
-    getAppSocketEndPoint } from '../../functions';
+    getAppSocketEndPoint, 
+    setLowConnectionStatusMode, 
+    setConferenceLastNToOne } from '../../functions';
 import {
     AbstractConference,
     abstractMapStateToProps
@@ -55,7 +57,6 @@ import { default as Notice } from './Notice';
 import ParticipantsList from './ParticipantsList';
 import PrivacyPage from './privacy/privacy';
 import TermsPage from './terms/terms';
-
 
 declare var APP: Object;
 declare var config: Object;
@@ -153,7 +154,8 @@ class Conference extends AbstractConference<Props, *> {
             });
 
             this.state = {
-                waitingParticipantsFetchDone: false
+                waitingParticipantsFetchDone: false,
+                connectionQualityTimer: null
             };
 
             // Bind event handler so it is only bound once for every instance.
@@ -197,10 +199,30 @@ class Conference extends AbstractConference<Props, *> {
         }
         document.querySelector('body').classList.remove('legal-page-body');
         this.sendMessageWaitingParticipants();
-        // if (this.props._shouldDisplayTileView
-        //     === prevProps._shouldDisplayTileView) {
-        //     return;
-        // }
+        if (this.props._connectionQuality
+             !== prevProps._connectionQuality) {
+                this.checkAndClearConnectionQualityTimer();
+                let connectionQualityTimer = null;
+                 // If _connectionQuality is not good, 
+                 // set lastN to zero if no screen share is happening, else set to 1.
+                if(this.props._connectionQuality < 70) {
+                    connectionQualityTimer =
+                        setTimeout(() => setLowConnectionStatusMode(), 10);
+                    
+                    this.setConnectionTimerInState(connectionQualityTimer);
+                }
+                else {
+                    connectionQualityTimer =
+                        setTimeout(() => {
+                            // check if the _connectionQuality is good to restore the lastN value
+                            const _connectionQuality = APP?.conference?.getStats()?.connectionQuality;
+                            _connectionQuality && _connectionQuality >= 70
+                            && !APP.store.getState()['features/filmstrip'].collapsed && setConferenceLastNToOne()
+                        }, 5000);
+
+                    this.setConnectionTimerInState(connectionQualityTimer);
+                }
+        }
 
         // TODO: For now VideoLayout is being called as LargeVideo and Filmstrip
         // sizing logic is still handled outside of React. Once all components
@@ -231,6 +253,27 @@ class Conference extends AbstractConference<Props, *> {
         APP.conference.isJoined() && this.props.dispatch(disconnect());
 
 
+    }
+
+    /**
+     * 
+     */
+
+    checkAndClearConnectionQualityTimer() {
+        if(this.state.connectionQualityTimer) {
+            clearTimeout(this.state.connectionQualityTimer);
+            this.setConnectionTimerInState(null);
+        }
+    }
+
+    /**
+     * 
+     */
+
+    setConnectionTimerInState(timer) {
+        this.setState({ 
+            connectionQualityTimer: timer
+        });
     }
 
     /**

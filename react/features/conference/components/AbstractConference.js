@@ -76,6 +76,7 @@ export function abstractMapStateToProps(state: Object) {
     return {
         _notificationsVisible: shouldDisplayNotifications(state),
         _room: state['features/base/conference'].room,
-        _shouldDisplayTileView: shouldDisplayTileView(state)
+        _shouldDisplayTileView: shouldDisplayTileView(state),
+        _connectionQuality: APP?.conference?.getStats()?.connectionQuality
     };
 }

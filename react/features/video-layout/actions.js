@@ -38,7 +38,7 @@ export function setParticipantsWithScreenShare(participantIds: Array<string>) {
  * }}
  */
 export function setTileView(enabled: ?boolean) {
-    // perform only if the filemstrip is already collapsed
+    // perform only if the filmstrip is already collapsed
     setTimeout(() => 
         APP.store.getState()['features/filmstrip'].collapsed && setConferenceLastNToOne(!enabled)
     , 10);
